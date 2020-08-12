@@ -1,0 +1,55 @@
+version: "3.7"
+services:
+    api:
+        image: libraryapi
+        depends_on: 
+            - sql
+            - redis
+            - rabbit
+        ports: 
+            - "80:80"
+        environment:
+            - ConnectionStrings__LibraryDatabase=server=sql;database=library;user=sa;password=TokyoJoe138!
+            - ConnectionStrings__Redis=redis
+            - rabbit:HostName=rabbit
+            - rabbit:UserName=guest
+            - rabbit:Password=guest
+            - rabbit:Port=5672
+            - rabbit:VHost=/
+        networks:
+            - my-network
+    worker:
+        image: librarybw
+        depends_on: 
+            - rabbit
+        environment: 
+            - rabbit:HostName=rabbit
+            - rabbit:UserName=guest
+            - rabbit:Password=guest
+            - rabbit:Port=5672
+            - rabbit:VHost=/
+            - apiUrl=http://api/    
+        networks:
+            - my-network
+    sql:
+        image: joecairnes/librarysql
+        ports:
+            - "1433:1433"
+        networks:
+            - my-network
+    redis:
+        image: redis
+        ports:
+            - "6379:6379"
+        networks:
+            - my-network
+    rabbit:
+        image: joecairnes/libraryrabbit
+        ports:
+            - "5672:5672"
+            - "15672:15672" 
+        networks:
+            - my-network
+networks:
+    my-network:
+        driver: bridge

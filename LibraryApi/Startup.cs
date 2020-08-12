@@ -4,7 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using AutoMapper;
 using LibraryApi.Domain;
+using LibraryApi.Mappers;
 using LibraryApi.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -14,6 +16,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using RabbitMqUtils;
 
 namespace LibraryApi
 {
@@ -29,6 +32,9 @@ namespace LibraryApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddRabbit(Configuration);
+            services.AddScoped<ISendReservationToTheQueue, RabbitMqReservationQueue>();
+
             services.AddControllers()
                 .AddJsonOptions(options =>
                 {
@@ -36,6 +42,19 @@ namespace LibraryApi
                 });
 
             services.AddTransient<ISystemTime, SystemTime>();
+            services.AddScoped<IMapBooks, EfSqlBooksMapper>();
+
+            var mapperConfig = new MapperConfiguration(mc =>
+            {
+                mc.AddProfile(new BookProfile());
+            });
+            services.AddSingleton<IMapper>(mapperConfig.CreateMapper());
+            services.AddSingleton<MapperConfiguration>(mapperConfig);
+            services.AddTransient<ILookupDevelopers, RedisDeveloperLookup>();
+            services.AddDistributedRedisCache(options =>
+            {
+                options.Configuration = Configuration.GetConnectionString("Redis");
+            });
 
             services.AddDbContext<LibraryDataContext>(options =>
 

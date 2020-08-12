@@ -23,7 +23,19 @@ namespace LibraryApiIntegrationTests
             var response = await Client.GetAsync("/books");
 
             var content = await response.Content.ReadAsAsync<GetBooksResponse>();
-            Assert.Equal(2, content.numberOfBooks);
+            Assert.Equal(content.books.Length, content.numberOfBooks);
+            Assert.Equal("Jaws", content.books[0].title);
+            Assert.Null(content.genreFilter);
+        }
+
+        [Fact]
+        public async Task CanFilterByGenre()
+        {
+            var response = await Client.GetAsync("/books?genre=Fiction");
+            var content = await response.Content.ReadAsAsync<GetBooksResponse>();
+
+            Assert.Equal(1, content.numberOfBooks);
+            Assert.Equal("Fiction", content.genreFilter);
         }
     }
 
